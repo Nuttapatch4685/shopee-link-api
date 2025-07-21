@@ -71,7 +71,7 @@ exports.createUser = async (req, res, next) => {
         password: hashPassword,
         phone: phone,
         role: role,
-        credit: credit,
+        credit: Number(credit),
         status: Number(status),
         createdBy: created_by,
         updatedBy: updated_by,
