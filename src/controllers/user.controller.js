@@ -138,7 +138,7 @@ exports.updateUser = async (req, res, next) => {
           password: hashPassword,
         },
       });
-      res.json({ message: "แก้ไขผู้ใข้งานสำเร็จ" });
+      res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
     } else {
       await prisma.user.update({
         where: { user_id: parseInt(user_id) },
@@ -150,7 +150,7 @@ exports.updateUser = async (req, res, next) => {
           role: role,
         },
       });
-      res.json({ message: "แก้ไขผู้ใข้งานสำเร็จ" });
+      res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
     }
   } catch (error) {
     next(error);
@@ -163,7 +163,7 @@ exports.deleteUser = async (req, res, next) => {
     const user = await prisma.user.delete({
       where: { user_id: parseInt(user_id) },
     });
-    res.json({ message: "ลบผู้ใข้งานสำเร็จ" });
+    res.json({ message: "ลบผู้ใช้งานสำเร็จ" });
   } catch (error) {
     next(error);
   }
@@ -199,7 +199,7 @@ exports.login = async (req, res, next) => {
 
     if (!user) {
       return res.status(400).json({
-        message: "ไม่มีผู้ใข้งานนี้ในระบบ",
+        message: "ไม่มีผู้ใช้งานนี้ในระบบ",
       });
     }
 
