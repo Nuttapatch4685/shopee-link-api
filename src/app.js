@@ -6,7 +6,7 @@ const cron = require("node-cron");
 const utils = require("./utils/schedule");
 const authMiddleware = require("./middlewares/auth.middleware");
 
-cron.schedule("0 0 * * *", () => {
+cron.schedule("*/10 * * * *", () => {
   utils.updateCredit();
 });
 
