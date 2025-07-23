@@ -7,10 +7,10 @@ const utils = require("./utils/schedule");
 const authMiddleware = require("./middlewares/auth.middleware");
 
 cron.schedule(
-  "0 13 * * *",
+  "0 0 * * *",
   () => {
     // console.log("Running at 00:00 schedules");
-    console.log("Running at 01:00 PM schedules");
+    console.log("Running at 00:00 AM schedules");
     utils.updateCredit();
   },
   {
