@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient(); // import Prisma client
 
-export const authenticate = async (req, res, next) => {
+const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(" ")[1];
 
@@ -32,3 +32,5 @@ export const authenticate = async (req, res, next) => {
     return res.status(401).json({ error: "Invalid token" });
   }
 };
+
+module.exports = authenticate;
