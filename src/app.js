@@ -4,12 +4,11 @@ const routes = require("./routes");
 const cors = require("cors");
 const cron = require("node-cron");
 const utils = require("./utils/schedule");
-const authMiddleware = require("./middlewares/auth.middleware");
+const accessMiddleware = require("./middlewares/access.middleware");
 
 cron.schedule(
   "0 0 * * *",
   () => {
-    // console.log("Running at 00:00 schedules");
     console.log("Running at 00:00 AM schedules");
     utils.updateCredit();
   },
@@ -20,7 +19,7 @@ cron.schedule(
 
 app.use(cors());
 app.use(express.json());
-app.use(authMiddleware);
+// app.use(accessMiddleware);
 app.use("/api", routes);
 
 module.exports = app;

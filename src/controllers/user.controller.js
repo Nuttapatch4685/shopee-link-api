@@ -36,6 +36,7 @@ exports.getUsers = async (req, res, next) => {
       res.json([]);
     }
   } catch (error) {
+    console.log("error", error);
     next(error);
   }
 };
@@ -187,10 +188,10 @@ exports.updateUserCredit = async (req, res, next) => {
     next(error);
   }
 };
+
 exports.login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
-
     const user = await prisma.user.findUnique({
       where: {
         username: username,
@@ -219,19 +220,36 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    const secret = process.env.JWT_SECRET;
-    const secretKey = Buffer.from(secret, "utf8");
+    const existingSession = await prisma.session.findUnique({
+      where: { user_id: user.user_id },
+    });
 
-    delete user?.password;
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-    const token = await jwt.sign(user, secretKey, {
-      algorithm: "HS256",
+    if (existingSession && existingSession.lastActive > fiveMinutesAgo && existingSession.expiresAt > now) {
+      return res.status(400).json({ message: "ชื่อผู้ใช้ของคุณกำลังเข้าใช้งานอยู่ในขณะนี้ โปรดรอสักครู่" });
+    }
+
+    // Delete old session if expired
+    if (existingSession) {
+      await prisma.session.delete({ where: { user_id: user.user_id } });
+    }
+
+    const token = jwt.sign(user, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
-    return res.json({
-      token: token,
+    await prisma.session.create({
+      data: {
+        user_id: user.user_id,
+        token,
+        lastActive: now,
+        expiresAt: new Date(now.getTime() + 60 * 60 * 1000),
+      },
     });
+
+    res.json({ token });
   } catch (error) {
     next(error);
   }
@@ -281,3 +299,13 @@ exports.register = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.logout = async (req, res, next) => {
+  await prisma.session.delete({ where: { user_id: req.body.user_id } });
+  res.sendStatus(200);
+};
+
+// exports.me = async (req, res, next) => {
+//   const user = req.user;
+//   res.json(user);
+// };
