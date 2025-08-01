@@ -102,57 +102,109 @@ exports.getUser = async (req, res, next) => {
   }
 };
 
+// exports.updateUser = async (req, res, next) => {
+//   try {
+//     const { user_id } = req.params;
+//     const { username, status, role, credit, phone, password } = req.body;
+
+//     const checkDuplicate = await prisma.user.findFirst({
+//       where: {
+//         OR: [
+//           {
+//             username: username,
+//           },
+//           {
+//             phone: phone,
+//           },
+//         ],
+//         NOT: {
+//           user_id: Number(user_id),
+//         },
+//       },
+//     });
+
+//     if (checkDuplicate) throw new Error("มีชื่อผู้ใช้ หรือ เบอร์โทรศัพท์นี้ในระบบแล้ว");
+
+//     if (password.length > 0) {
+//       const hashPassword = await bcrypt.hash(password, 10);
+
+//       await prisma.user.update({
+//         where: { user_id: parseInt(user_id) },
+//         data: {
+//           username: username,
+//           status: Number(status),
+//           credit: Number(credit),
+//           phone: phone,
+//           role: role,
+//           password: hashPassword,
+//         },
+//       });
+//       res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
+//     } else {
+//       await prisma.user.update({
+//         where: { user_id: parseInt(user_id) },
+//         data: {
+//           username: username,
+//           status: Number(status),
+//           credit: Number(credit),
+//           phone: phone,
+//           role: role,
+//         },
+//       });
+//       res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
+//     }
+//   } catch (error) {
+//     console.log("error", error.message);
+//     next(error);
+//   }
+// };
+
 exports.updateUser = async (req, res, next) => {
   try {
     const { user_id } = req.params;
     const { username, status, role, credit, phone, password } = req.body;
 
+    // ตรวจสอบชื่อหรือเบอร์โทรซ้ำ (ยกเว้นของตัวเอง)
     const checkDuplicate = await prisma.user.findFirst({
       where: {
-        OR: [
+        AND: [
           {
-            username: username,
+            NOT: {
+              user_id: Number(user_id),
+            },
           },
           {
-            phone: phone,
+            OR: [{ username }, { phone }],
           },
         ],
-        NOT: {
-          user_id: Number(user_id),
-        },
       },
     });
 
-    if (checkDuplicate) throw new Error("มีชื่อผู้ใช้ หรือ เบอร์โทรศัพท์นี้ในระบบแล้ว");
-
-    if (password.length > 0) {
-      const hashPassword = await bcrypt.hash(password, 10);
-
-      await prisma.user.update({
-        where: { user_id: parseInt(user_id) },
-        data: {
-          username: username,
-          status: Number(status),
-          credit: Number(credit),
-          phone: phone,
-          role: role,
-          password: hashPassword,
-        },
-      });
-      res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
-    } else {
-      await prisma.user.update({
-        where: { user_id: parseInt(user_id) },
-        data: {
-          username: username,
-          status: Number(status),
-          credit: Number(credit),
-          phone: phone,
-          role: role,
-        },
-      });
-      res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
+    if (checkDuplicate) {
+      throw new Error("มีชื่อผู้ใช้ หรือ เบอร์โทรศัพท์นี้ในระบบแล้ว");
     }
+
+    // เตรียมข้อมูล
+    const data = {
+      username,
+      status: Number(status),
+      credit: Number(credit),
+      phone,
+      role,
+    };
+
+    // หากส่งรหัสผ่านใหม่มาด้วย
+    if (typeof password === "string" && password.length > 0) {
+      data.password = await bcrypt.hash(password, 10);
+    }
+
+    // อัปเดต
+    await prisma.user.update({
+      where: { user_id: Number(user_id) },
+      data,
+    });
+
+    res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
   } catch (error) {
     console.log("error", error.message);
     next(error);
