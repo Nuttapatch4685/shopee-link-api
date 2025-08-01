@@ -5,6 +5,7 @@ const cors = require("cors");
 const cron = require("node-cron");
 const utils = require("./utils/schedule");
 const accessMiddleware = require("./middlewares/access.middleware");
+const bodyParser = require("body-parser");
 
 cron.schedule(
   "0 0 * * *",
@@ -19,6 +20,8 @@ cron.schedule(
 
 app.use(cors());
 app.use(express.json());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 // app.use(accessMiddleware);
 app.use("/api", routes);
 
