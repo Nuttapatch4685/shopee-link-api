@@ -154,6 +154,7 @@ exports.updateUser = async (req, res, next) => {
       res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
     }
   } catch (error) {
+    console.log("error", error.message);
     next(error);
   }
 };
