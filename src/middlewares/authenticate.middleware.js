@@ -1,8 +1,13 @@
+<<<<<<< HEAD
 import jwt from "jsonwebtoken"
 import { PrismaClient } from "@prisma/client";
+=======
+const jwt = require("jsonwebtoken");
+const { PrismaClient } = require("@prisma/client");
+>>>>>>> 935bcdd309e2f988a84d1d79aed30635c22a0a29
 const prisma = new PrismaClient(); // import Prisma client
 
-export const authenticate = async (req, res, next) => {
+const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(" ")[1];
 
@@ -32,3 +37,5 @@ export const authenticate = async (req, res, next) => {
     return res.status(401).json({ error: "Invalid token" });
   }
 };
+
+module.exports = { authenticate };
