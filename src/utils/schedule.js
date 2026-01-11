@@ -3,6 +3,7 @@ const prisma = new PrismaClient();
 
 exports.updateCredit = async (req, res, next) => {
   try {
+    console.log("Call schedules update credit");
     await prisma.$transaction([
       prisma.user.updateMany({
         where: {
@@ -26,6 +27,7 @@ exports.updateCredit = async (req, res, next) => {
       }),
     ]);
   } catch (error) {
+    console.log("Error schedules", error.message);
     next(error);
   }
 };

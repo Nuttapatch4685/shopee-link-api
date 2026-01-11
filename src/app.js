@@ -4,15 +4,25 @@ const routes = require("./routes");
 const cors = require("cors");
 const cron = require("node-cron");
 const utils = require("./utils/schedule");
-const authMiddleware = require("./middlewares/auth.middleware");
+const accessMiddleware = require("./middlewares/access.middleware");
+const bodyParser = require("body-parser");
 
-cron.schedule("0 0 * * *", () => {
-  utils.updateCredit();
-});
+cron.schedule(
+  "0 0 * * *",
+  () => {
+    console.log("Running at 00:00 AM schedules");
+    utils.updateCredit();
+  },
+  {
+    timezone: "Asia/Bangkok",
+  }
+);
 
 app.use(cors());
 app.use(express.json());
-app.use(authMiddleware);
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+// app.use(accessMiddleware);
 app.use("/api", routes);
 
 module.exports = app;

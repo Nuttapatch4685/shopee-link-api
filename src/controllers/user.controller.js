@@ -36,6 +36,7 @@ exports.getUsers = async (req, res, next) => {
       res.json([]);
     }
   } catch (error) {
+    console.log("error", error);
     next(error);
   }
 };
@@ -71,7 +72,7 @@ exports.createUser = async (req, res, next) => {
         password: hashPassword,
         phone: phone,
         role: role,
-        credit: credit,
+        credit: Number(credit),
         status: Number(status),
         createdBy: created_by,
         updatedBy: updated_by,
@@ -101,58 +102,111 @@ exports.getUser = async (req, res, next) => {
   }
 };
 
+// exports.updateUser = async (req, res, next) => {
+//   try {
+//     const { user_id } = req.params;
+//     const { username, status, role, credit, phone, password } = req.body;
+
+//     const checkDuplicate = await prisma.user.findFirst({
+//       where: {
+//         OR: [
+//           {
+//             username: username,
+//           },
+//           {
+//             phone: phone,
+//           },
+//         ],
+//         NOT: {
+//           user_id: Number(user_id),
+//         },
+//       },
+//     });
+
+//     if (checkDuplicate) throw new Error("มีชื่อผู้ใช้ หรือ เบอร์โทรศัพท์นี้ในระบบแล้ว");
+
+//     if (password.length > 0) {
+//       const hashPassword = await bcrypt.hash(password, 10);
+
+//       await prisma.user.update({
+//         where: { user_id: parseInt(user_id) },
+//         data: {
+//           username: username,
+//           status: Number(status),
+//           credit: Number(credit),
+//           phone: phone,
+//           role: role,
+//           password: hashPassword,
+//         },
+//       });
+//       res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
+//     } else {
+//       await prisma.user.update({
+//         where: { user_id: parseInt(user_id) },
+//         data: {
+//           username: username,
+//           status: Number(status),
+//           credit: Number(credit),
+//           phone: phone,
+//           role: role,
+//         },
+//       });
+//       res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
+//     }
+//   } catch (error) {
+//     console.log("error", error.message);
+//     next(error);
+//   }
+// };
+
 exports.updateUser = async (req, res, next) => {
   try {
     const { user_id } = req.params;
     const { username, status, role, credit, phone, password } = req.body;
 
+    // ตรวจสอบชื่อหรือเบอร์โทรซ้ำ (ยกเว้นของตัวเอง)
     const checkDuplicate = await prisma.user.findFirst({
       where: {
-        OR: [
+        AND: [
           {
-            username: username,
+            NOT: {
+              user_id: Number(user_id),
+            },
           },
           {
-            phone: phone,
+            OR: [{ username }, { phone }],
           },
         ],
-        NOT: {
-          user_id: Number(user_id),
-        },
       },
     });
 
-    if (checkDuplicate) throw new Error("มีชื่อผู้ใช้ หรือ เบอร์โทรศัพท์นี้ในระบบแล้ว");
-
-    if (password.length > 0) {
-      const hashPassword = await bcrypt.hash(password, 10);
-
-      await prisma.user.update({
-        where: { user_id: parseInt(user_id) },
-        data: {
-          username: username,
-          status: Number(status),
-          credit: Number(credit),
-          phone: phone,
-          role: role,
-          password: hashPassword,
-        },
-      });
-      res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
-    } else {
-      await prisma.user.update({
-        where: { user_id: parseInt(user_id) },
-        data: {
-          username: username,
-          status: Number(status),
-          credit: Number(credit),
-          phone: phone,
-          role: role,
-        },
-      });
-      res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
+    if (checkDuplicate) {
+      throw new Error("มีชื่อผู้ใช้ หรือ เบอร์โทรศัพท์นี้ในระบบแล้ว");
     }
+
+    // เตรียมข้อมูล
+    const data = {
+      username,
+      status: Number(status),
+      credit: Number(credit),
+      phone,
+      role,
+    };
+
+    // หากส่งรหัสผ่านใหม่มาด้วย
+    if (typeof password === "string" && password.length > 0) {
+      data.password = await bcrypt.hash(password, 10);
+    }
+
+    // อัปเดต
+    await prisma.user.update({
+      where: { user_id: Number(user_id) },
+      data,
+    });
+
+    res.json({ message: "แก้ไขผู้ใช้งานสำเร็จ" });
   } catch (error) {
+    console.log("error", error.message);
     next(error);
   }
 };
@@ -187,10 +241,10 @@ exports.updateUserCredit = async (req, res, next) => {
     next(error);
   }
 };
+
 exports.login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
-
     const user = await prisma.user.findUnique({
       where: {
         username: username,
@@ -219,19 +273,36 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    const secret = process.env.JWT_SECRET;
-    const secretKey = Buffer.from(secret, "utf8");
+    const existingSession = await prisma.session.findUnique({
+      where: { user_id: user.user_id },
+    });
 
-    delete user?.password;
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-    const token = await jwt.sign(user, secretKey, {
-      algorithm: "HS256",
+    if (existingSession && existingSession.lastActive > fiveMinutesAgo && existingSession.expiresAt > now) {
+      return res.status(400).json({ message: "ชื่อผู้ใช้ของคุณกำลังเข้าใช้งานอยู่ในขณะนี้ โปรดรอสักครู่" });
+    }
+
+    // Delete old session if expired
+    if (existingSession) {
+      await prisma.session.delete({ where: { user_id: user.user_id } });
+    }
+
+    const token = jwt.sign(user, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
-    return res.json({
-      token: token,
+    await prisma.session.create({
+      data: {
+        user_id: user.user_id,
+        token,
+        lastActive: now,
+        expiresAt: new Date(now.getTime() + 60 * 60 * 1000),
+      },
     });
+
+    res.json({ token });
   } catch (error) {
     next(error);
   }
@@ -281,3 +352,13 @@ exports.register = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.logout = async (req, res, next) => {
+  await prisma.session.delete({ where: { user_id: req.body.user_id } });
+  res.sendStatus(200);
+};
+
+// exports.me = async (req, res, next) => {
+//   const user = req.user;
+//   res.json(user);
+// };

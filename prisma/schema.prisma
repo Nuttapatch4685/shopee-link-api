@@ -26,5 +26,14 @@ model User {
   updatedBy Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  expiredAt DateTime @default(dbgenerated("(now() + interval '30 days')"))
+  session   Session?
+}
+
+model Session {
+  session_id String   @id @default(uuid())
+  user_id    Int      @unique
+  user       User?    @relation(fields: [user_id], references: [user_id])
+  token      String   @unique
+  lastActive DateTime
+  expiresAt  DateTime
 }
